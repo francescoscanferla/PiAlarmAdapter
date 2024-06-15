@@ -1,3 +1,4 @@
+import unittest
 from unittest import TestCase
 from unittest.mock import MagicMock
 
@@ -21,3 +22,7 @@ class TestMqttService(TestCase):
     def test_disconnect(self):
         self.mqtt_service.disconnect()
         self.mqtt_client_mock.disconnect.assert_called_once()
+
+
+if __name__ == '__main__':
+    unittest.main()
