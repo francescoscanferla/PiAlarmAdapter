@@ -27,5 +27,10 @@ class SensorsConfig(BaseSettings):
                 sensors[int(value)] = sensor_name
         return cls(sensors=sensors)
 
+    @classmethod
+    def is_real_board(cls):
+        pin_factory = os.environ.get("GPIOZERO_PIN_FACTORY")
+        return pin_factory != "mock"
+
     class Config:
         env_prefix = 'SENSOR_'
