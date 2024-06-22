@@ -2,10 +2,12 @@ import logging
 
 import paho.mqtt.client as mqtt
 
+from app.config import MqttConfig
+
 
 class MqttClient:
 
-    def __init__(self, config) -> None:
+    def __init__(self, config: MqttConfig) -> None:
         self.config = config
         self.logger = logging.getLogger(__name__)
         self.client = mqtt.Client()
