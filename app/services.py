@@ -9,9 +9,9 @@ from typing import Dict
 
 from gpiozero import Button
 
-from src.config import SensorsConfig
-from src.models import MessageModel
-from src.mqtt_client import MqttClient
+from app.config import SensorsConfig
+from app.models import MessageModel
+from app.mqtt_client import MqttClient
 
 
 class MqttService:
@@ -30,14 +30,11 @@ class MqttService:
 
     def connect(self) -> None:
         self.mqtt_client.connect()
-        self.join_queue()
+        msg_thread = threading.Thread(target=self.on_message_request)
+        msg_thread.start()
 
     def disconnect(self) -> None:
         self.mqtt_client.disconnect()
-
-    def join_queue(self):
-        msg_thread = threading.Thread(target=self.on_message_request)
-        msg_thread.start()
 
     def on_message_request(self) -> None:
         while True:
@@ -58,10 +55,10 @@ class SensorsService:
         self.logger = logging.getLogger(__name__)
         self.config = sensors_config
 
-    def _get_sensor_name(self, pin):
+    def _get_sensor_name(self, pin: int):
         return self.config.sensors[pin]
 
-    def on_close(self, btn):
+    def on_close(self, btn: Button):
         sensor_name = self._get_sensor_name(btn.pin.number)
         logging.info("The %s sensor is close", sensor_name)
         self.queue_service.put(MessageModel(status="close", pin=btn.pin.number, name=sensor_name))

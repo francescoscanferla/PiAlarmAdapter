@@ -2,9 +2,9 @@ import queue
 
 from dependency_injector import containers, providers
 
-from src.config import MqttConfig, SensorsConfig
-from src.mqtt_client import MqttClient
-from src.services import MqttService, SensorsService, MockSensorService
+from app.config import MqttConfig, SensorsConfig
+from app.mqtt_client import MqttClient
+from app.services import MqttService, SensorsService, MockSensorService
 
 
 class AppContainer(containers.DeclarativeContainer):
