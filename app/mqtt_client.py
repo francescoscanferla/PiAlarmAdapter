@@ -19,11 +19,19 @@ class MqttClient:
                          self.config.broker_url, self.config.broker_port, reason_code)
 
     def connect(self):
-        self.logger.info("Attempting to connect to %s:%s", self.config.broker_url, self.config.broker_port)
+        self.logger.info(
+            "Attempting to connect to %s:%s",
+            self.config.broker_url,
+            self.config.broker_port
+        )
         self.client.connect(self.config.broker_url, self.config.broker_port)
 
     def disconnect(self) -> None:
-        self.logger.info("Disconnecting from %s:%s", self.config.broker_url, self.config.broker_port)
+        self.logger.info(
+            "Disconnecting from %s:%s",
+            self.config.broker_url,
+            self.config.broker_port
+        )
         self.client.disconnect()
 
     def publish_message(self, topic, message) -> None:
