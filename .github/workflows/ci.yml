@@ -26,4 +26,9 @@ jobs:
 
     - name: Test with unittest
       run: |
-        python -m unittest discover
+        coverage run -m unittest discover
+        coverage report
+        coverage xml
+
+    - name: Coveralls
+        uses: coverallsapp/github-action@master
