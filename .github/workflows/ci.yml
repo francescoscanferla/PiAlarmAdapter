@@ -30,5 +30,8 @@ jobs:
         coverage report
         coverage xml
 
-    - name: Coveralls
-        uses: coverallsapp/github-action@master
+    - name: Publish to Coveralls
+      env:
+        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+      run: |
+        coveralls
