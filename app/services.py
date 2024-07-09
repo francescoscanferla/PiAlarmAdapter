@@ -71,8 +71,8 @@ class SensorsService:
     def connect_sensors(self):
         for k, v in self.config.sensors.items():
             button = Button(k)
-            button.when_activated = partial(SensorsService.on_close, self)
-            button.when_deactivated = partial(SensorsService.on_open, self)
+            button.when_pressed = partial(SensorsService.on_close, self)
+            button.when_released = partial(SensorsService.on_open, self)
             self.sensors[k] = button
 
 
@@ -94,7 +94,7 @@ class MockSensorService:
                 self.logger.debug("Sensor on pin %s set to LOW (pressed).", sensor.pin)
             else:
                 sensor.pin.drive_high()
-                self.logger.debug("Sensor on pin % set to HIGH (released).", sensor.pin)
+                self.logger.debug("Sensor on pin %s set to HIGH (released).", sensor.pin)
             time.sleep(self.interval)
 
     def start(self):

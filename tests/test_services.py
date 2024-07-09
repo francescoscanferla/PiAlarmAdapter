@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 from gpiozero import Button
 
 from app.mqtt_client import MqttClient
-from app.services import MqttService, SensorsService
+from app.services import MqttService, SensorsService, MockSensorService
 
 
 class TestMqttService(TestCase):
@@ -103,6 +103,68 @@ class TestSensorsService(TestCase):
         self.assertEqual(len(sensors_service.sensors), len(config.sensors))
         expected_calls = [unittest.mock.call(1), unittest.mock.call(2)]
         mock_button.assert_has_calls(expected_calls, any_order=True)
+
+
+class TestMockSensorService(TestCase):
+
+    def setUp(self):
+        self.sensors_service_mock = MagicMock()
+        self.sensors_service_mock.sensors = {
+            17: MagicMock(pin=MagicMock(), value=0),
+            18: MagicMock(pin=MagicMock(), value=1),
+        }
+        self.logger_mock = MagicMock()
+        self.stop_event_mock = MagicMock()
+        self.stop_event_mock.is_set.side_effect = [False, True]
+
+        self.test_class = MockSensorService(
+            sensors_service=self.sensors_service_mock
+        )
+        self.test_class.interval = 0.1
+        self.test_class.logger = self.logger_mock
+        self.test_class._stop_event = self.stop_event_mock
+
+    @patch('random.choice')
+    def test_toggle_state_low(self, random_choice_mock):
+        random_choice_mock.side_effect = lambda x: list(self.sensors_service_mock.sensors.items())[0]
+
+        self.test_class._toggle_state()
+
+        self.sensors_service_mock.sensors[17].pin.drive_low.assert_called_once()
+        self.sensors_service_mock.sensors[17].pin.drive_high.assert_not_called()
+        self.logger_mock.debug.assert_any_call("Sensor on pin %s set to LOW (pressed).",
+                                               self.sensors_service_mock.sensors[17].pin)
+
+    @patch('random.choice')
+    def test_toggle_state_high(self, random_choice_mock):
+        random_choice_mock.side_effect = lambda x: list(self.sensors_service_mock.sensors.items())[1]
+
+        self.test_class._toggle_state()
+
+        self.sensors_service_mock.sensors[18].pin.drive_high.assert_called_once()
+        self.sensors_service_mock.sensors[18].pin.drive_low.assert_not_called()
+        self.logger_mock.debug.assert_any_call("Sensor on pin %s set to HIGH (released).",
+                                               self.sensors_service_mock.sensors[18].pin)
+
+    @patch('threading.Thread')
+    def test_start(self, mock_thread):
+        thread_instance_mock = MagicMock()
+        mock_thread.return_value = thread_instance_mock
+
+        self.test_class.start()
+
+        mock_thread.assert_called_once_with(target=self.test_class._toggle_state)
+        thread_instance_mock.start.assert_called_once()
+        self.assertEqual(self.test_class._thread, thread_instance_mock)
+
+    def test_stop(self):
+        thread_instance_mock = MagicMock()
+        self.test_class._thread = thread_instance_mock
+
+        self.test_class.stop()
+
+        self.stop_event_mock.set.assert_called_once()
+        self.test_class._thread.join.assert_called_once()
 
 
 if __name__ == '__main__':
