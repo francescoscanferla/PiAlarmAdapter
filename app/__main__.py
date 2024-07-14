@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 
 from dependency_injector.wiring import inject, Provide
@@ -9,7 +10,8 @@ from app.container import AppContainer
 from app.services import SensorsService, MqttService, MockSensorService
 
 load_dotenv()
-logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', level=logging.DEBUG)
+log_level = os.environ.get('LOG_LEVEL')
+logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', level=logging.getLevelName(log_level))
 
 
 @inject
