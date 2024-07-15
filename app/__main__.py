@@ -11,7 +11,10 @@ from app.services import SensorsService, MqttService, MockSensorService
 
 load_dotenv()
 log_level = os.environ.get('LOG_LEVEL')
-logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', level=logging.getLevelName(log_level))
+logging.basicConfig(
+    format='%(asctime)s [%(levelname)s]: %(message)s',
+    level=logging.getLevelName(log_level)
+)
 
 
 @inject
