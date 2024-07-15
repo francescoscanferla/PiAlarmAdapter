@@ -11,7 +11,7 @@ setup(
     version="0.0.1",
     author="Francesco Scanferla",
     author_email="info@francescoscanferla.it",
-    description="Application to manage contact sensors and send messages with state change to an MQTT Broker",
+    description="Manage contact sensors and send messages with state change to MQTT Broker",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/francescoscanferla/PiAlarmAdapter",
