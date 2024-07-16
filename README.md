@@ -1,12 +1,16 @@
 # PiAlarmAdapter
 
-[![CI Pipeline](https://github.com/francescoscanferla/PiAlarmAdapter/actions/workflows/ci.yml/badge.svg)](https://github.com/francescoscanferla/PiAlarmAdapter/actions/workflows/ci.yml) [![Coverage Status](https://coveralls.io/repos/github/francescoscanferla/PiAlarmAdapter/badge.svg?branch=main)](https://coveralls.io/github/francescoscanferla/PiAlarmAdapter?branch=main)
+[![CI Pipeline](https://github.com/francescoscanferla/PiAlarmAdapter/actions/workflows/ci.yml/badge.svg)](https://github.com/francescoscanferla/PiAlarmAdapter/actions/workflows/ci.yml) [![Coverage Status](https://coveralls.io/repos/github/francescoscanferla/PiAlarmAdapter/badge.svg?branch=main)](https://coveralls.io/github/francescoscanferla/PiAlarmAdapter?branch=main) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/b7e2b28d810c4ff8873175f5bc5db68d)](https://app.codacy.com/gh/francescoscanferla/PiAlarmAdapter/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 Application to manage contact sensors and send messages with state change to an MQTT Broker.
 
+## Install
+You can use pip directly through the command:
+> pip install pi_alarm_adapter
 
+## Settings
 
-## Environment variables
+### Environment variables
 
 | Variable             |  Default  | Info                                                           |
 |----------------------|:---------:|----------------------------------------------------------------|
@@ -20,3 +24,7 @@ For sensor configuration, add environment variables in the format:
 SENSOR_<NOME_SENSORE>=<PIN_NUMBER>
 
 Example: **SENSOR_BEDROOM=4**
+
+
+## ToDo List
+- [ ] move configuration from environment variables to a yaml file
