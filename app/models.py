@@ -1,3 +1,6 @@
+import os
+from typing import Dict
+
 from pydantic import BaseModel, Field
 
 
@@ -24,3 +27,12 @@ class MqttConfig(BaseModel):
     port: int = Field(1883, description="MQTT Broker port")
     username: str
     password: str
+
+
+class SensorsConfig(BaseModel):
+    sensors: Dict[int, str] = Field(default_factory=dict)
+
+    @classmethod
+    def is_real_board(cls):
+        pin_factory = os.environ.get("GPIOZERO_PIN_FACTORY")
+        return pin_factory != "mock"

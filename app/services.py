@@ -9,8 +9,7 @@ from typing import Dict
 
 from gpiozero import Button
 
-from app.config import SensorsConfig
-from app.models import MessageModel
+from app.models import MessageModel, SensorsConfig
 from app.mqtt_client import MqttClient
 
 

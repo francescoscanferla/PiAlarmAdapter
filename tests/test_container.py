@@ -4,8 +4,7 @@ from unittest import TestCase
 from unittest.mock import patch, MagicMock, call
 
 import app.container
-from app.config import SensorsConfig
-from app.models import MqttConfig
+from app.models import MqttConfig, SensorsConfig
 from app.mqtt_client import MqttClient
 from app.services import MqttService, SensorsService, MockSensorService
 
@@ -39,7 +38,7 @@ class TestAppContainer(TestCase):
         expected_calls = [
             call(queue.Queue),
             call(MqttConfig),
-            call(SensorsConfig.load_from_env),
+            call(SensorsConfig),
             call(MqttClient, config=mock_singleton.return_value),
             call(MqttService, mock_singleton.return_value, mock_singleton.return_value),
             call(SensorsService, mock_singleton.return_value, mock_singleton.return_value),
