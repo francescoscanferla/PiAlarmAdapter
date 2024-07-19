@@ -5,8 +5,9 @@ import time
 from dependency_injector.wiring import inject, Provide
 from dotenv import load_dotenv
 
-from app.config import SensorsConfig
+from app.config import check_config
 from app.container import AppContainer
+from app.models import SensorsConfig
 from app.services import SensorsService, MqttService, MockSensorService
 
 load_dotenv()
@@ -41,6 +42,7 @@ def main(
 
 if __name__ == "__main__":
     logging.info('PiAlarmAdapter is starting...')
+    check_config()
     container = AppContainer()
     container.init_resources()
     container.wire(modules=[__name__])
