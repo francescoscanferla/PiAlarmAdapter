@@ -68,7 +68,7 @@ class SensorsService:
         self.queue_service.put(MessageModel(status="open", pin=btn.pin.number, name=sensor_name))
 
     def connect_sensors(self):
-        for k, v in self.config.sensors.items():
+        for k in self.config.sensors.keys():
             button = Button(k)
             button.when_pressed = partial(SensorsService.on_close, self)
             button.when_released = partial(SensorsService.on_open, self)
@@ -87,7 +87,7 @@ class MockSensorService:
     def _toggle_state(self):
         while not self._stop_event.is_set():
             item: Dict[int, Button] = random.choice(list(self.sensors_service.sensors.items()))
-            pin, sensor = item
+            _, sensor = item
             if sensor.value == 0:
                 sensor.pin.drive_low()
                 self.logger.debug("Sensor on pin %s set to LOW (pressed).", sensor.pin)

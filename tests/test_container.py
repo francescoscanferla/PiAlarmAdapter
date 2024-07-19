@@ -32,7 +32,6 @@ class TestAppContainer(TestCase):
         ]
 
         importlib.reload(app.container)
-        from app.container import AppContainer
 
         self.assertEqual(mock_singleton.call_count, 7)
         expected_calls = [
