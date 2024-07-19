@@ -5,23 +5,10 @@ from unittest.mock import patch
 
 from parameterized import parameterized
 
-from app.config import MqttConfig, SensorsConfig
+from app.config import SensorsConfig
 
 
 class TestConfig(TestCase):
-
-    @patch.dict('os.environ', {
-        'MQTT_BROKER_URL': 'mqtt://tests-broker',
-        'MQTT_BROKER_PORT': '1883',
-        'MQTT_USERNAME': 'test_user',
-        'MQTT_PASSWORD': 'test_password'
-    })
-    def test_mqtt_config_from_env(self):
-        config = MqttConfig()
-        self.assertEqual(config.broker_url, 'mqtt://tests-broker')
-        self.assertEqual(config.broker_port, 1883)
-        self.assertEqual(config.username, 'test_user')
-        self.assertEqual(config.password, 'test_password')
 
     @patch.dict('os.environ', {
         'SENSOR_BEDROOM': '16',

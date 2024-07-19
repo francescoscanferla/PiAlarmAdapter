@@ -14,8 +14,8 @@ class TestMqttClient(TestCase):
         self.config = MagicMock()
         self.config.username = 'test_user'
         self.config.password = 'test_password'
-        self.config.broker_url = 'mqtt://test-broker'
-        self.config.broker_port = 1883
+        self.config.address = 'mqtt://test-broker'
+        self.config.port = 1883
 
         self.mock_client = MagicMock()
         self.mock_client.username_pw_set.return_value = None

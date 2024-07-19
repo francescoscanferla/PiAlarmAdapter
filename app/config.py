@@ -1,18 +1,9 @@
 import os
+from pathlib import Path
 from typing import Dict
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
-
-
-class MqttConfig(BaseSettings):
-    broker_url: str
-    broker_port: int
-    username: str
-    password: str
-
-    class Config:
-        env_prefix = 'MQTT_'
 
 
 class SensorsConfig(BaseSettings):
@@ -34,3 +25,7 @@ class SensorsConfig(BaseSettings):
 
     class Config:
         env_prefix = 'SENSOR_'
+
+
+def get_config_path():
+    return Path.home() / ".PiAlarmAdapter" / "config.ini"

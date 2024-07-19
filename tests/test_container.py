@@ -4,7 +4,8 @@ from unittest import TestCase
 from unittest.mock import patch, MagicMock, call
 
 import app.container
-from app.config import MqttConfig, SensorsConfig
+from app.config import SensorsConfig
+from app.models import MqttConfig
 from app.mqtt_client import MqttClient
 from app.services import MqttService, SensorsService, MockSensorService
 

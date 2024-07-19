@@ -1,3 +1,6 @@
+from pydantic import BaseModel, Field
+
+
 class MessageModel:
     status: str
     pin: int
@@ -14,3 +17,10 @@ class MessageModel:
             "pin": self.pin,
             "name": self.name
         }
+
+
+class MqttConfig(BaseModel):
+    address: str = Field("localhost", description="Address of MQTT Broker")
+    port: int = Field(1883, description="MQTT Broker port")
+    username: str
+    password: str
