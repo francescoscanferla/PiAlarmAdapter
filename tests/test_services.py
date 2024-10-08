@@ -40,13 +40,17 @@ class TestMqttService(TestCase):
 
     def test_on_message_request(self):
         message_instance = MagicMock()
-        message_instance.to_dict.return_value = {'name': 'test_message'}
+        message_instance.to_dict.return_value = {'name': 'test_message', 'status': 'open'}
         message_instance.name = 'test_message'
+        message_instance.status = 'open'
         self.mqtt_service.publish_message = MagicMock()
         self.queue_service_mock.get.side_effect = [message_instance, None]
         self.mqtt_service.on_message_request()
 
-        self.mqtt_service.publish_message.assert_called_once_with('test_message', json.dumps({'name': 'test_message'}))
+        self.mqtt_service.publish_message.assert_called_once_with(
+            'test_message/status',
+            'open'
+        )
         self.queue_service_mock.task_done.assert_called_once()
 
 
@@ -76,7 +80,7 @@ class TestSensorsService(TestCase):
         called_arg = self.queue_service_mock.put.call_args[0][0]
         self.queue_service_mock.put.assert_called_once()
         self.assertEqual(called_arg.pin, 1)
-        self.assertEqual(called_arg.status, "close")
+        self.assertEqual(called_arg.status, "closed")
         self.assertEqual(called_arg.name, "test")
 
     def test_on_open(self):

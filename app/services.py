@@ -41,8 +41,9 @@ class MqttService:
             if msg is None:
                 break
             msg_str = msg.to_dict()
+            topic = msg.name + "/status"
             self.logger.debug(f"Message requests for: {json.dumps(msg_str)}")
-            self.publish_message(msg.name, json.dumps(msg_str))
+            self.publish_message(topic, msg.status)
             self.queue_service.task_done()
 
 
@@ -60,12 +61,12 @@ class SensorsService:
     def on_close(self, btn: Button):
         sensor_name = self._get_sensor_name(btn.pin.number)
         logging.info("The %s sensor is close", sensor_name)
-        self.queue_service.put(MessageModel(status="off", pin=btn.pin.number, name=sensor_name))
+        self.queue_service.put(MessageModel(status="closed", pin=btn.pin.number, name=sensor_name))
 
     def on_open(self, btn):
         sensor_name = self._get_sensor_name(btn.pin.number)
         logging.info("The %s sensor is open", sensor_name)
-        self.queue_service.put(MessageModel(status="on", pin=btn.pin.number, name=sensor_name))
+        self.queue_service.put(MessageModel(status="open", pin=btn.pin.number, name=sensor_name))
 
     def connect_sensors(self):
         for k in self.config.sensors.keys():
