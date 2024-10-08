@@ -12,6 +12,11 @@
 Application to manage contact sensors and send messages with state change to an MQTT Broker.
 
 ## Install
+
+### Prerequisite
+E' necessario che sul raspberry siano installata la libreria **RPi.GPIO** o la **pigpio**
+
+### From PIP
 You can use pip directly through the command:
 > pip install pi_alarm_adapter
 
@@ -19,19 +24,15 @@ You can use pip directly through the command:
 
 ### Environment variables
 
-| Variable             |  Default  | Info                                                           |
-|----------------------|:---------:|----------------------------------------------------------------|
-| **LOG_LEVEL**        |   INFO    | Level of logger. Valori possibili: DEBUG, INFO, WARNING, ERROR |
-| **MQTT_BROKER_URL**  | 127.0.0.1 | IP address of the MQTT broker                                  |
-| **MQTT_BROKER_PORT** |   1883    | Port number of the MQTT Broker                                 |
-| **MQTT_USERNAME**    |   admin   | Username that can post messages on queues                      |
-| **MQTT_PASSWORD**    |   admin   | password of the user above                                               |
+| Variable             |  Default  | Info                                                                                          |
+|----------------------|:---------:|-----------------------------------------------------------------------------------------------|
+| **LOG_LEVEL**        |   INFO    | Optional. Possible values: DEBUG, INFO, WARNING, ERROR. If not specified, the default is INFO |
 
-For sensor configuration, add environment variables in the format:
-SENSOR_<NOME_SENSORE>=<PIN_NUMBER>
 
-Example: **SENSOR_BEDROOM=4**
+When running the application for the first time, you are prompted for the configurations that 
+will later be saved in the .PiAlarmAdapter folder inside the user's home folder
 
 
 ## ToDo List
-- [ ] move configuration from environment variables to a yaml file
+- [X] move configuration from environment variables to a yaml file
+- Add support for NFC readers
