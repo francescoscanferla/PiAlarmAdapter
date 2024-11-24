@@ -30,9 +30,15 @@ def main(
     if not sensors_config.is_real_board():
         mock_sensor_service.start()
 
+    check_timer: int = 0
     try:
         logging.info('PiAlarmAdapter started')
         while True:
+            check_timer += 1
+            if check_timer == 10:
+                sensors_service.check_sensors()
+                check_timer = 0
+
             time.sleep(1)
     except KeyboardInterrupt:
         mqtt_service.disconnect()

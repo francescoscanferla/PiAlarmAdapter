@@ -75,11 +75,19 @@ class SensorsService:
             button.when_released = partial(SensorsService.on_open, self)
             self.sensors[k] = button
 
+    def check_sensors(self):
+        for pin, btn in self.sensors.items():
+            sensor_name = self._get_sensor_name(btn.pin.number)
+            status = "open" if btn.is_active else "closed"
+            self.queue_service.put(
+                MessageModel(status=status, pin=btn.pin.number, name=sensor_name)
+            )
+
 
 class MockSensorService:
     def __init__(self, sensors_service: SensorsService):
         self._thread = None
-        self.interval = 5
+        self.interval = 20
         self.sensors_service = sensors_service
         self.logger = logging.getLogger(__name__)
         self._stop_event = threading.Event()

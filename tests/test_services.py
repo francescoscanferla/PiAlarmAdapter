@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from gpiozero import Button
 
+from app.models import SensorsConfig, MessageModel
 from app.mqtt_client import MqttClient
 from app.services import MqttService, SensorsService, MockSensorService
 
@@ -107,6 +108,35 @@ class TestSensorsService(TestCase):
         self.assertEqual(len(sensors_service.sensors), len(config.sensors))
         expected_calls = [unittest.mock.call(1), unittest.mock.call(2)]
         mock_button.assert_has_calls(expected_calls, any_order=True)
+
+    def test_check_sensors(self):
+        sensors_config = MagicMock(SensorsConfig)
+        queue_service = MagicMock(Queue)
+        _get_sensor_name = MagicMock(side_effect=lambda pin: f"Sensor-{pin}")
+        sensors = {
+            1: MagicMock(pin=MagicMock(number=1), is_active=True),
+            2: MagicMock(pin=MagicMock(number=2), is_active=False)
+        }
+        sensor_service = SensorsService(sensors_config, queue_service)
+        sensor_service.sensors = sensors
+        sensor_service._get_sensor_name = _get_sensor_name
+
+        sensor_service.check_sensors()
+        self.assertEqual(queue_service.put.call_count, 2)
+        actual_calls = [call.args[0] for call in queue_service.put.call_args_list]
+
+        expected_calls = [
+            MessageModel(status="open", pin=1, name="Sensor-1"),
+            MessageModel(status="closed", pin=2, name="Sensor-2")
+        ]
+
+        for expected, actual in zip(expected_calls, actual_calls):
+            self.assertEqual(expected.status, actual.status)
+            self.assertEqual(expected.pin, actual.pin)
+            self.assertEqual(expected.name, actual.name)
+
+        _get_sensor_name.assert_any_call(1)
+        _get_sensor_name.assert_any_call(2)
 
 
 class TestMockSensorService(TestCase):
