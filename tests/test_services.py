@@ -126,8 +126,8 @@ class TestSensorsService(TestCase):
         actual_calls = [call.args[0] for call in queue_service.put.call_args_list]
 
         expected_calls = [
-            MessageModel(status="open", pin=1, name="Sensor-1"),
-            MessageModel(status="closed", pin=2, name="Sensor-2")
+            MessageModel(status="closed", pin=1, name="Sensor-1"),
+            MessageModel(status="open", pin=2, name="Sensor-2")
         ]
 
         for expected, actual in zip(expected_calls, actual_calls):

@@ -77,10 +77,10 @@ class SensorsService:
 
     def check_sensors(self):
         for pin, btn in self.sensors.items():
-            sensor_name = self._get_sensor_name(btn.pin.number)
-            status = "open" if btn.is_active else "closed"
+            sensor_name = self._get_sensor_name(pin)
+            status = "closed" if btn.is_active else "open"
             self.queue_service.put(
-                MessageModel(status=status, pin=btn.pin.number, name=sensor_name)
+                MessageModel(status=status, pin=pin, name=sensor_name)
             )
 
 
