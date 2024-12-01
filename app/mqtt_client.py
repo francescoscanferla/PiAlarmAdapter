@@ -24,7 +24,7 @@ class MqttClient:
             self.config.address,
             self.config.port
         )
-        self.client.connect(self.config.address, self.config.port)
+        self.client.connect(self.config.address, self.config.port, keepalive=120)
 
     def disconnect(self) -> None:
         self.logger.info(
@@ -36,4 +36,4 @@ class MqttClient:
 
     def publish_message(self, topic, message) -> None:
         self.client.publish(topic, message)
-        self.logger.info("Sent message: %s to topic: %s", message, topic)
+        self.logger.debug("Sent message: %s to topic: %s", message, topic)

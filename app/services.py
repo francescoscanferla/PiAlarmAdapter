@@ -60,12 +60,12 @@ class SensorsService:
 
     def on_close(self, btn: Button):
         sensor_name = self._get_sensor_name(btn.pin.number)
-        logging.info("The %s sensor is close", sensor_name)
+        logging.debug("The %s sensor is close", sensor_name)
         self.queue_service.put(MessageModel(status="closed", pin=btn.pin.number, name=sensor_name))
 
     def on_open(self, btn):
         sensor_name = self._get_sensor_name(btn.pin.number)
-        logging.info("The %s sensor is open", sensor_name)
+        logging.debug("The %s sensor is open", sensor_name)
         self.queue_service.put(MessageModel(status="open", pin=btn.pin.number, name=sensor_name))
 
     def connect_sensors(self):

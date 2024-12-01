@@ -37,7 +37,7 @@ class TestMqttClient(TestCase):
 
     def test_connect(self):
         self.mqtt_client.connect()
-        self.mock_client.connect.assert_called_once_with('mqtt://test-broker', 1883)
+        self.mock_client.connect.assert_called_once_with('mqtt://test-broker', 1883, keepalive=120)
 
     def test_disconnect(self):
         self.mqtt_client.disconnect()
