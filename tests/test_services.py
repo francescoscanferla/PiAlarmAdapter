@@ -1,13 +1,11 @@
-import json
 import unittest
-from queue import Queue
 from typing import Dict
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
 from gpiozero import Button
 
-from app.models import SensorsConfig, MessageModel
+from app.models import MessageModel
 from app.mqtt_client import MqttClient
 from app.services import MqttService, SensorsService, MockSensorService
 
@@ -16,53 +14,31 @@ class TestMqttService(TestCase):
 
     def setUp(self):
         self.mqtt_client_mock = MagicMock(spec=MqttClient)
-        self.queue_service_mock = MagicMock(spec=Queue)
-        self.mqtt_service = MqttService(self.mqtt_client_mock, self.queue_service_mock)
+        self.mqtt_service = MqttService(self.mqtt_client_mock)
 
     def test_publish_message(self):
-        topic = "test_topic"
-        message = "test_message"
-        self.mqtt_service.publish_message(topic, message)
+        message = MessageModel(status='open', name='test', pin='1')
+        self.mqtt_service.publish_message(message)
 
-        self.mqtt_client_mock.publish_message.assert_called_once_with("alarm/test_topic", message)
+        self.mqtt_client_mock.publish_message.assert_called_once_with('alarm/test/status', 'open', 0)
 
-    @patch('threading.Thread')
-    def test_connect(self, mock_thread):
-        self.mqtt_service.on_message_request = MagicMock()
+    def test_connect(self):
         self.mqtt_service.connect()
         self.mqtt_client_mock.connect.assert_called_once()
-        mock_thread.assert_called_once_with(target=self.mqtt_service.on_message_request)
-        thread_instance = mock_thread.return_value
-        thread_instance.start.assert_called_once()
 
     def test_disconnect(self):
         self.mqtt_service.disconnect()
         self.mqtt_client_mock.disconnect.assert_called_once()
 
-    def test_on_message_request(self):
-        message_instance = MagicMock()
-        message_instance.to_dict.return_value = {'name': 'test_message', 'status': 'open'}
-        message_instance.name = 'test_message'
-        message_instance.status = 'open'
-        self.mqtt_service.publish_message = MagicMock()
-        self.queue_service_mock.get.side_effect = [message_instance, None]
-        self.mqtt_service.on_message_request()
-
-        self.mqtt_service.publish_message.assert_called_once_with(
-            'test_message/status',
-            'open'
-        )
-        self.queue_service_mock.task_done.assert_called_once()
-
 
 class TestSensorsService(TestCase):
 
-    @patch('app.services.Queue')
     @patch('app.services.SensorsConfig')
-    def setUp(self, queue_service_mock, sensor_config_mock):
-        self.queue_service_mock = queue_service_mock
+    @patch('app.services.MqttService')
+    def setUp(self, sensor_config_mock, mqtt_service_mock):
         self.sensor_config_mock = sensor_config_mock
-        self.sensors_service = SensorsService(sensors_config=sensor_config_mock, queue_service=queue_service_mock)
+        self.mqtt_service_mock = mqtt_service_mock
+        self.sensors_service = SensorsService(sensors_config=sensor_config_mock, mqtt_service=mqtt_service_mock)
 
     def test_get_sensor_name(self):
         sensors: Dict[int, str] = {1: 'test1', 2: 'test2'}
@@ -78,11 +54,10 @@ class TestSensorsService(TestCase):
 
         self.sensors_service.on_close(btn)
 
-        called_arg = self.queue_service_mock.put.call_args[0][0]
-        self.queue_service_mock.put.assert_called_once()
-        self.assertEqual(called_arg.pin, 1)
-        self.assertEqual(called_arg.status, "closed")
-        self.assertEqual(called_arg.name, "test")
+        called_args = self.mqtt_service_mock.publish_message.call_args[0][0]
+        self.assertEqual(called_args.status, "closed")
+        self.assertEqual(called_args.pin, 1)
+        self.assertEqual(called_args.name, "test")
 
     def test_on_open(self):
         btn: Button = MagicMock()
@@ -92,51 +67,42 @@ class TestSensorsService(TestCase):
 
         self.sensors_service.on_open(btn)
 
-        called_arg = self.queue_service_mock.put.call_args[0][0]
-        self.queue_service_mock.put.assert_called_once()
-        self.assertEqual(called_arg.pin, 1)
-        self.assertEqual(called_arg.status, "open")
-        self.assertEqual(called_arg.name, "test")
+        called_args = self.mqtt_service_mock.publish_message.call_args[0][0]
+        self.assertEqual(called_args.status, "open")
+        self.assertEqual(called_args.pin, 1)
+        self.assertEqual(called_args.name, "test")
 
     @patch('app.services.Button')
     def test_connect_sensors(self, mock_button):
         config = MagicMock()
-        queue_mock = MagicMock(Queue)
         config.sensors = {1: 'value1', 2: 'value2'}
-        sensors_service = SensorsService(sensors_config=config, queue_service=queue_mock)
+        sensors_service = SensorsService(sensors_config=config, mqtt_service=self.mqtt_service_mock)
         sensors_service.connect_sensors()
         self.assertEqual(len(sensors_service.sensors), len(config.sensors))
         expected_calls = [unittest.mock.call(1), unittest.mock.call(2)]
         mock_button.assert_has_calls(expected_calls, any_order=True)
 
     def test_check_sensors(self):
-        sensors_config = MagicMock(SensorsConfig)
-        queue_service = MagicMock(Queue)
-        _get_sensor_name = MagicMock(side_effect=lambda pin: f"Sensor-{pin}")
-        sensors = {
-            1: MagicMock(pin=MagicMock(number=1), is_active=True),
-            2: MagicMock(pin=MagicMock(number=2), is_active=False)
+        self.sensors_service.sensors = {
+            1: MagicMock(is_active=True),
+            2: MagicMock(is_active=False)
         }
-        sensor_service = SensorsService(sensors_config, queue_service)
-        sensor_service.sensors = sensors
-        sensor_service._get_sensor_name = _get_sensor_name
+        self.sensors_service._get_sensor_name = MagicMock(side_effect=lambda pin: f"Sensor-{pin}")
+        self.sensors_service.check_sensors()
 
-        sensor_service.check_sensors()
-        self.assertEqual(queue_service.put.call_count, 2)
-        actual_calls = [call.args[0] for call in queue_service.put.call_args_list]
+        self.assertEqual(self.mqtt_service_mock.publish_message.call_count, 2)
 
-        expected_calls = [
-            MessageModel(status="closed", pin=1, name="Sensor-1"),
-            MessageModel(status="open", pin=2, name="Sensor-2")
-        ]
+        calls = self.mqtt_service_mock.publish_message.mock_calls
 
-        for expected, actual in zip(expected_calls, actual_calls):
-            self.assertEqual(expected.status, actual.status)
-            self.assertEqual(expected.pin, actual.pin)
-            self.assertEqual(expected.name, actual.name)
+        msg_1 = calls[0].args[0]
+        self.assertEqual(msg_1.name, "Sensor-1")
+        self.assertEqual(msg_1.status, "closed")
+        self.assertEqual(msg_1.pin, 1)
 
-        _get_sensor_name.assert_any_call(1)
-        _get_sensor_name.assert_any_call(2)
+        msg_2 = calls[1].args[0]
+        self.assertEqual(msg_2.name, "Sensor-2")
+        self.assertEqual(msg_2.status, "open")
+        self.assertEqual(msg_2.pin, 2)
 
 
 class TestMockSensorService(TestCase):

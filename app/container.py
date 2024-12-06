@@ -27,6 +27,6 @@ class AppContainer(containers.DeclarativeContainer):
         )
     )
     mqtt_client = providers.Singleton(MqttClient, config=mqtt_config)
-    mqtt_service = providers.Singleton(MqttService, mqtt_client, queue_service)
-    sensors_service = providers.Singleton(SensorsService, sensors_config, queue_service)
+    mqtt_service = providers.Singleton(MqttService, mqtt_client)
+    sensors_service = providers.Singleton(SensorsService, sensors_config, mqtt_service)
     mock_sensor_service = providers.Singleton(MockSensorService, sensors_service)
