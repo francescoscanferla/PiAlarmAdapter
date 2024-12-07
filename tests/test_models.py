@@ -13,13 +13,15 @@ class TestMessageModel(TestCase):
         status = "test_status"
         name = "test_name"
         pin = 5
+        qos = 1
 
         expected = {
             "status": status,
             "pin": pin,
-            "name": name
+            "name": name,
+            "qos": qos
         }
-        message = MessageModel(status, pin, name)
+        message = MessageModel(status, pin, name, qos)
         actual = message.to_dict()
 
         assert actual == expected

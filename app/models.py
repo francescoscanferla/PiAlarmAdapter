@@ -8,17 +8,20 @@ class MessageModel:
     status: str
     pin: int
     name: str
+    qos: int
 
-    def __init__(self, status, pin, name):
+    def __init__(self, status, pin, name, qos=0):
         self.status = status
         self.pin = pin
         self.name = name
+        self.qos = qos
 
     def to_dict(self):
         return {
             "status": self.status,
             "pin": self.pin,
-            "name": self.name
+            "name": self.name,
+            "qos": self.qos
         }
 
 

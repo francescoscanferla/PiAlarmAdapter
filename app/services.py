@@ -14,6 +14,7 @@ from app.mqtt_client import MqttClient
 
 class MqttService:
     topic_prefix = "alarm/"
+    topic_suffix = "/status"
 
     def __init__(self, mqtt_client: MqttClient):
         self.logger = logging.getLogger(__name__)
@@ -24,9 +25,9 @@ class MqttService:
 
     def publish_message(self, msg) -> None:
         msg_str = msg.to_dict()
-        topic = msg.name + "/status"
+        topic = msg.name + self.topic_suffix
         self.logger.debug(f"Message requests for: {json.dumps(msg_str)}")
-        self.mqtt_client.publish_message(self._get_topic(topic), msg.status, 0)
+        self.mqtt_client.publish_message(self._get_topic(topic), msg.status, msg.qos)
 
     def connect(self) -> None:
         self.mqtt_client.connect()
@@ -50,15 +51,22 @@ class SensorsService:
     def _get_sensor_name(self, pin: int):
         return self.config.sensors[pin]
 
+    def is_real_board(self):
+        return self.config.is_real_board()
+
     def on_close(self, btn: Button):
         sensor_name = self._get_sensor_name(btn.pin.number)
         logging.debug("The %s sensor is close", sensor_name)
-        self.mqtt_service.publish_message(MessageModel(status="closed", pin=btn.pin.number, name=sensor_name))
+        self.mqtt_service.publish_message(
+            MessageModel(status="closed", pin=btn.pin.number, name=sensor_name, qos=2)
+        )
 
     def on_open(self, btn):
         sensor_name = self._get_sensor_name(btn.pin.number)
         logging.debug("The %s sensor is open", sensor_name)
-        self.mqtt_service.publish_message(MessageModel(status="open", pin=btn.pin.number, name=sensor_name))
+        self.mqtt_service.publish_message(
+            MessageModel(status="open", pin=btn.pin.number, name=sensor_name, qos=2)
+        )
 
     def connect_sensors(self):
         for k in self.config.sensors.keys():

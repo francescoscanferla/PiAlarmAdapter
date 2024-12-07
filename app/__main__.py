@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 
 from app.config import check_config
 from app.container import AppContainer
-from app.models import SensorsConfig
 from app.services import SensorsService, MqttService, MockSensorService
 
 load_dotenv()
@@ -21,13 +20,12 @@ logging.basicConfig(
 @inject
 def main(
         mqtt_service: MqttService = Provide[AppContainer.mqtt_service],
-        sensors_config: SensorsConfig = Provide[AppContainer.sensors_config],
         sensors_service: SensorsService = Provide[AppContainer.sensors_service],
         mock_sensor_service: MockSensorService = Provide[AppContainer.mock_sensor_service]
 ) -> None:
     mqtt_service.connect()
     sensors_service.connect_sensors()
-    if not sensors_config.is_real_board():
+    if not sensors_service.is_real_board():
         mock_sensor_service.start()
 
     check_timer: int = 0
@@ -41,7 +39,7 @@ def main(
             time.sleep(1)
     except KeyboardInterrupt:
         mqtt_service.disconnect()
-        if not sensors_config.is_real_board():
+        if not sensors_service.is_real_board():
             mock_sensor_service.stop()
 
 
