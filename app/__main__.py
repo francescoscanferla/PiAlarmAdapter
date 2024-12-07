@@ -32,7 +32,6 @@ def main(
 
     check_timer: int = 0
     try:
-        logging.info('PiAlarmAdapter started')
         while True:
             check_timer += 1
             if check_timer == 10:

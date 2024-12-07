@@ -46,10 +46,11 @@ class TestMqttClient(TestCase):
     def test_publish_message(self):
         topic = 'test/topic'
         message = 'Test message'
+        qos = 1
 
-        self.mqtt_client.publish_message(topic, message)
+        self.mqtt_client.publish_message(topic, message, qos)
 
-        self.mock_client.publish.assert_called_once_with(topic, message)
+        self.mock_client.publish.assert_called_once_with(topic, message, qos)
 
 
 if __name__ == '__main__':

@@ -14,7 +14,7 @@ class MqttClient:
         self.client.on_connect = self._on_connect
         self.client.username_pw_set(config.username, config.password)
 
-    def _on_connect(self, client, userdata, flags, reason_code, properties):
+    def _on_connect(self, client, userdata, flags, reason_code, properties=None):
         self.logger.info("Connected to broker: %s:%s with code %s",
                          self.config.address, self.config.port, reason_code)
 
@@ -25,6 +25,7 @@ class MqttClient:
             self.config.port
         )
         self.client.connect(self.config.address, self.config.port, keepalive=120)
+        self.client.loop_start()
 
     def disconnect(self) -> None:
         self.logger.info(
@@ -32,8 +33,9 @@ class MqttClient:
             self.config.address,
             self.config.port
         )
+        self.client.loop_stop()
         self.client.disconnect()
 
-    def publish_message(self, topic, message) -> None:
-        self.client.publish(topic, message)
+    def publish_message(self, topic, message, qos) -> None:
+        self.client.publish(topic, message, qos)
         self.logger.debug("Sent message: %s to topic: %s", message, topic)
