@@ -34,13 +34,13 @@ class TestConfig(TestCase):
 
         self.assertEqual(result, expected)
 
-    @patch('builtins.input', side_effect=['17', '19', '22', '23', ''])
+    @patch('builtins.input', side_effect=['sensor1', '17', '19', 'sensor2', '22', '23', ''])
     def test_init_rfid_data(self, mock_input):
         result = _init_rfid_data()
 
         expected = {
-            '1': '17,19',
-            '2': '22,23'
+            'sensor1': '17,19',
+            'sensor2': '22,23'
         }
 
         self.assertEqual(result, expected)
