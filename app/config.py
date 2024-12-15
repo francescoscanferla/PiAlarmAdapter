@@ -29,6 +29,19 @@ def _init_sensors_data():
     return data
 
 
+def _init_rfid_data():
+    data = {}
+    sensor_id = 1
+    while True:
+        cs_pin = input(f"Enter the number of CS pin of the Sensor-{sensor_id} (or press Enter to finish): ")
+        if not cs_pin:
+            break
+        rst_pin = input("Enter the number of RST pin: ")
+        data[f"{sensor_id}"] = f"{cs_pin},{rst_pin}"
+        sensor_id += 1
+    return data
+
+
 def get_config_path():
     return Path.home() / ".PiAlarmAdapter" / "config.ini"
 
@@ -44,6 +57,7 @@ def setup_config():
     config = configparser.ConfigParser()
     config['mqtt'] = _init_mqtt_data()
     config['sensors'] = _init_sensors_data()
+    config['rfid'] = _init_rfid_data()
 
     config_path = get_config_path()
     config_path.parent.mkdir(parents=True, exist_ok=True)

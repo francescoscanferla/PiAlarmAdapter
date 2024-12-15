@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
-from app.config import _init_mqtt_data, _init_sensors_data, get_config_path, setup_config, check_config
+from app.config import _init_rfid_data, _init_mqtt_data, _init_sensors_data, get_config_path, setup_config, check_config
 
 
 class TestConfig(TestCase):
@@ -30,6 +30,17 @@ class TestConfig(TestCase):
         expected = {
             'kitchen': '5',
             'bedroom': '3'
+        }
+
+        self.assertEqual(result, expected)
+
+    @patch('builtins.input', side_effect=['17', '19', '22', '23', ''])
+    def test_init_rfid_data(self, mock_input):
+        result = _init_rfid_data()
+
+        expected = {
+            '1': '17,19',
+            '2': '22,23'
         }
 
         self.assertEqual(result, expected)
@@ -75,9 +86,11 @@ class TestConfig(TestCase):
     @patch('app.config.Path.mkdir')
     @patch('app.config._init_mqtt_data')
     @patch('app.config._init_sensors_data')
-    def test_setup_config(self, mock_init_sensors, mock_init_mqtt, mock_mkdir, mock_get_config_path):
+    @patch('app.config._init_rfid_data')
+    def test_setup_config(self, mock_init_rfid, mock_init_sensors, mock_init_mqtt, mock_mkdir, mock_get_config_path):
         mock_init_mqtt.return_value = {'address': 'localhost', 'port': '1883', 'username': 'user', 'password': 'pass'}
         mock_init_sensors.return_value = {'kitchen': '5', 'bedroom': '4'}
+        mock_init_rfid.return_value = {'1': '17,19'}
         mock_get_config_path.return_value = Path('/mock/path/config.ini')
 
         config_output = StringIO()
@@ -94,8 +107,10 @@ class TestConfig(TestCase):
 
         self.assertIn('mqtt', config)
         self.assertIn('sensors', config)
+        self.assertIn('rfid', config)
         self.assertEqual(dict(config['mqtt']), mock_init_mqtt.return_value)
         self.assertEqual(dict(config['sensors']), mock_init_sensors.return_value)
+        self.assertEqual(dict(config['rfid']), mock_init_rfid.return_value)
 
 
 if __name__ == '__main__':
