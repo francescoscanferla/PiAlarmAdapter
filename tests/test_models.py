@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from parameterized import parameterized
 
-from app.models import MessageModel, SensorsConfig
+from app.models import MessageModel, SensorsConfig, RfidConfig
 
 
 class TestMessageModel(TestCase):
@@ -35,3 +35,22 @@ class TestMessageModel(TestCase):
         os.environ.update(env_vars)
         actual = SensorsConfig.is_real_board()
         self.assertEqual(actual, expected)
+
+class TestRfidConfig(TestCase):
+
+    def test_parse_sensors(self):
+        input_data = {
+            "sensors": {
+                "sensor1": "10,20",
+                "sensor2": "30,40"
+            }
+        }
+
+        config = RfidConfig(**input_data)
+
+        expected_sensors = {
+            "sensor1": {"cs_pin": 10, "rst_pin": 20},
+            "sensor2": {"cs_pin": 30, "rst_pin": 40}
+        }
+
+        self.assertEqual(config.sensors, expected_sensors)

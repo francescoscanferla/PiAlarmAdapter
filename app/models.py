@@ -1,7 +1,7 @@
 import os
 from typing import Dict
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class MessageModel:
@@ -39,3 +39,20 @@ class SensorsConfig(BaseModel):
     def is_real_board(cls):
         pin_factory = os.environ.get("GPIOZERO_PIN_FACTORY")
         return pin_factory != "mock"
+
+
+class RfidSensorConfig(BaseModel):
+    cs_pin: int
+    rst_pin: int
+
+
+class RfidConfig(BaseModel):
+    sensors: Dict[str, RfidSensorConfig]
+
+    @field_validator("sensors", mode="before")
+    def parse_sensors(cls, value: dict):
+        parsed_sensors = {}
+        for sensor_name, pins in value.items():
+            cs_pin, rst_pin = map(int, pins.split(","))
+            parsed_sensors[sensor_name] = {"cs_pin": cs_pin, "rst_pin": rst_pin}
+        return parsed_sensors
