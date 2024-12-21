@@ -33,11 +33,11 @@ def _init_rfid_data():
     data = {}
     while True:
         sensor_name = input("Enter the name of the rfid sensor (or press Enter to finish): ")
-        cs_pin = input(f"Enter the number of CS pin of the {sensor_name}: ")
-        if not cs_pin:
+        if not sensor_name:
             break
+        cs_pin = input(f"Enter the number of CS pin of the {sensor_name}: ")
         rst_pin = input(f"Enter the number of RST pin of the {sensor_name}: ")
-        data[{sensor_name}] = f"{cs_pin},{rst_pin}"
+        data[sensor_name] = f"{cs_pin},{rst_pin}"
     return data
 
 
