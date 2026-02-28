@@ -8,7 +8,7 @@ from typing import Dict
 
 from gpiozero import Button
 
-from app.models import MessageModel, SensorsConfig
+from app.models import MessageModel, SensorsConfig, RfidConfig
 from app.mqtt_client import MqttClient
 
 
@@ -82,6 +82,18 @@ class SensorsService:
             self.mqtt_service.publish_message(
                 MessageModel(status=status, pin=pin, name=sensor_name)
             )
+
+
+class RfidService:
+
+    def __init__(
+            self,
+            rfid_config: RfidConfig
+    ):
+        self.config = rfid_config
+
+    def connect_sensors(self):
+        print(self.config)
 
 
 class MockSensorService:
