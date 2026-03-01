@@ -13,7 +13,7 @@ Application to manage contact sensors and send messages with state change to an 
 
 ### Prerequisite
 
-It is necessary to have the library installed on the raspberry **RPi.GPIO** o the **pigpio**
+It is necessary to have the library installed on the raspberry **gpiod**
 
 ### From PIP
 
@@ -27,7 +27,7 @@ You can use pip directly through the command:
 | Variable                 | Default | Info                                                                                          |
 |--------------------------|:-------:|-----------------------------------------------------------------------------------------------|
 | **LOG_LEVEL**            |  INFO   | Optional. Possible values: DEBUG, INFO, WARNING, ERROR. If not specified, the default is INFO |
-| **GPIOZERO_PIN_FACTORY** |  None   | If set to 'mock' enables GPIO virtualisation                                                  |
+| **GPIO_MOCK**            |  false  | If set to true enables GPIO virtualisation                                                    |
 | **MOCK_INTERVAL**        |   10    | In debug mode it is the time between state changes                                            |
 
 When running the application for the first time, you are prompted for the configurations that
@@ -36,5 +36,5 @@ will later be saved in the .PiAlarmAdapter folder inside the user's home folder
 ## ToDo List
 
 - [X] move configuration from environment variables to a yaml file
-- Add periodic check of sensors
-- Add support for NFC readers
+- [X] Add periodic check of sensors
+- Add support for NFC readers -> WIP

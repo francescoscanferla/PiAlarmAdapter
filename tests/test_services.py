@@ -1,10 +1,8 @@
+import os
 import unittest
-from typing import Dict
+import threading
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
-
-from gpiozero import Button
-
+from unittest.mock import MagicMock, patch, call
 from app.models import MessageModel
 from app.mqtt_client import MqttClient
 from app.services import MqttService, SensorsService, MockSensorService
@@ -17,10 +15,11 @@ class TestMqttService(TestCase):
         self.mqtt_service = MqttService(self.mqtt_client_mock)
 
     def test_publish_message(self):
-        message = MessageModel(status='open', name='test', pin='1')
+        message = MessageModel(status="open", name="test", pin=1)
         self.mqtt_service.publish_message(message)
-
-        self.mqtt_client_mock.publish_message.assert_called_once_with('alarm/test/status', 'open', 0)
+        self.mqtt_client_mock.publish_message.assert_called_once_with(
+            "alarm/test/status", "open", 0
+        )
 
     def test_connect(self):
         self.mqtt_service.connect()
@@ -33,139 +32,132 @@ class TestMqttService(TestCase):
 
 class TestSensorsService(TestCase):
 
-    @patch('app.services.SensorsConfig')
-    @patch('app.services.MqttService')
-    def setUp(self, sensor_config_mock, mqtt_service_mock):
-        self.sensor_config_mock = sensor_config_mock
-        self.mqtt_service_mock = mqtt_service_mock
-        self.sensors_service = SensorsService(sensors_config=sensor_config_mock, mqtt_service=mqtt_service_mock)
+    def setUp(self):
+        self.sensors_config_mock = MagicMock()
+        self.sensors_config_mock.sensors = {27: "porta", 22: "finestra"}
+        self.sensors_config_mock.is_real_board = False
+        self.mqtt_service_mock = MagicMock(spec=MqttService)
+        self.sensors_service = SensorsService(
+            sensors_config=self.sensors_config_mock, mqtt_service=self.mqtt_service_mock
+        )
 
-    def test_get_sensor_name(self):
-        sensors: Dict[int, str] = {1: 'test1', 2: 'test2'}
-        self.sensors_service.config.sensors = sensors
-        actual = self.sensors_service._get_sensor_name(1)
-        self.assertEqual(actual, 'test1')
+    def test_name_from_pin(self):
+        self.sensors_service.config.sensors = {1: "test1", 2: "test2"}
+        self.assertEqual(self.sensors_service.name_from_pin(1), "test1")
 
-    def test_on_close(self):
-        btn: Button = MagicMock()
-        btn.pin.number = 1
-        self.sensors_service._get_sensor_name = MagicMock()
-        self.sensors_service._get_sensor_name.return_value = "test"
+    def test_is_real_board_delegates_to_config(self):
+        self.sensors_config_mock.is_real_board = True
+        self.assertTrue(self.sensors_service.is_real_board)
+        self.sensors_config_mock.is_real_board = False
+        self.assertFalse(self.sensors_service.is_real_board)
 
-        self.sensors_service.on_close(btn)
+    def test_connect_sensors_mock_mode_skips_gpio(self):
+        self.sensors_service.connect_sensors()
+        self.assertIsNone(self.sensors_service.chip)
+        self.assertEqual(self.sensors_service.lines, {})
 
-        called_args = self.mqtt_service_mock.publish_message.call_args[0][0]
-        self.assertEqual(called_args.status, "closed")
-        self.assertEqual(called_args.pin, 1)
-        self.assertEqual(called_args.name, "test")
+    def test_connect_sensors_gpiod_unavailable(self):
+        self.sensors_config_mock.is_real_board = True
+        with patch("app.services.GPIOD_AVAILABLE", False):
+            self.sensors_service.connect_sensors()
+        self.assertIsNone(self.sensors_service.chip)
+        self.assertEqual(self.sensors_service.lines, {})
 
-    def test_on_open(self):
-        btn: Button = MagicMock()
-        btn.pin.number = 1
-        self.sensors_service._get_sensor_name = MagicMock()
-        self.sensors_service._get_sensor_name.return_value = "test"
-
-        self.sensors_service.on_open(btn)
-
-        called_args = self.mqtt_service_mock.publish_message.call_args[0][0]
-        self.assertEqual(called_args.status, "open")
-        self.assertEqual(called_args.pin, 1)
-        self.assertEqual(called_args.name, "test")
-
-    @patch('app.services.Button')
-    def test_connect_sensors(self, mock_button):
-        config = MagicMock()
-        config.sensors = {1: 'value1', 2: 'value2'}
-        sensors_service = SensorsService(sensors_config=config, mqtt_service=self.mqtt_service_mock)
-        sensors_service.connect_sensors()
-        self.assertEqual(len(sensors_service.sensors), len(config.sensors))
-        expected_calls = [unittest.mock.call(1), unittest.mock.call(2)]
-        mock_button.assert_has_calls(expected_calls, any_order=True)
-
-    def test_check_sensors(self):
-        self.sensors_service.sensors = {
-            1: MagicMock(is_active=True),
-            2: MagicMock(is_active=False)
-        }
-        self.sensors_service._get_sensor_name = MagicMock(side_effect=lambda pin: f"Sensor-{pin}")
+    def test_check_sensors_no_lines_does_nothing(self):
+        self.sensors_service.lines = {}
         self.sensors_service.check_sensors()
+        self.mqtt_service_mock.publish_message.assert_not_called()
 
-        self.assertEqual(self.mqtt_service_mock.publish_message.call_count, 2)
+    def test_check_sensors_publishes_on_change(self):
+        line_mock = MagicMock()
+        line_mock.get_value.return_value = 0  # closed
+        self.sensors_service.lines = {27: (line_mock, "porta")}
+        self.sensors_service.last_values = {27: 1}  # era open, ora closed
+        self.sensors_service.check_sensors()
+        self.mqtt_service_mock.publish_message.assert_called_once()
+        args = self.mqtt_service_mock.publish_message.call_args[0][0]
+        self.assertEqual(args.status, "closed")
+        self.assertEqual(args.pin, 27)
+        self.assertEqual(args.name, "porta")
 
-        calls = self.mqtt_service_mock.publish_message.mock_calls
+    def test_check_sensors_no_publish_without_change(self):
+        line_mock = MagicMock()
+        line_mock.get_value.return_value = 1  # open
+        self.sensors_service.lines = {27: (line_mock, "porta")}
+        self.sensors_service.last_values = {27: 1}  # stesso valore
+        self.sensors_service.check_sensors()
+        self.mqtt_service_mock.publish_message.assert_not_called()
 
-        msg_1 = calls[0].args[0]
-        self.assertEqual(msg_1.name, "Sensor-1")
-        self.assertEqual(msg_1.status, "closed")
-        self.assertEqual(msg_1.pin, 1)
+    def test_check_sensors_debounce_blocks_rapid_change(self):
+        import time
 
-        msg_2 = calls[1].args[0]
-        self.assertEqual(msg_2.name, "Sensor-2")
-        self.assertEqual(msg_2.status, "open")
-        self.assertEqual(msg_2.pin, 2)
+        line_mock = MagicMock()
+        line_mock.get_value.return_value = 0
+        self.sensors_service.lines = {27: (line_mock, "porta")}
+        self.sensors_service.last_values = {27: 1}
+        self.sensors_service.last_change[27] = time.time()  # appena cambiato
+        self.sensors_service.check_sensors()
+        self.mqtt_service_mock.publish_message.assert_not_called()
 
 
 class TestMockSensorService(TestCase):
 
     def setUp(self):
         self.sensors_service_mock = MagicMock()
-        self.sensors_service_mock.sensors = {
-            17: MagicMock(pin=MagicMock(), value=0),
-            18: MagicMock(pin=MagicMock(), value=1),
-        }
-        self.logger_mock = MagicMock()
+        self.sensors_service_mock.config.sensors = {27: "porta", 22: "finestra"}
+        self.sensors_service_mock.mqtt_service = MagicMock()
+        self.mock_service = MockSensorService(self.sensors_service_mock)
+        self.mock_service.interval = 0.01  # Veloce per i test
         self.stop_event_mock = MagicMock()
         self.stop_event_mock.is_set.side_effect = [False, True]
+        self.mock_service.stop_event = self.stop_event_mock
 
-        self.test_class = MockSensorService(
-            sensors_service=self.sensors_service_mock
+    def test_mock_states_initialized_from_config(self):
+        self.assertIn(27, self.mock_service.mock_states)
+        self.assertIn(22, self.mock_service.mock_states)
+        self.assertEqual(self.mock_service.mock_states[27], 1)
+        self.assertEqual(self.mock_service.mock_states[22], 1)
+
+    def test_toggle_state_publishes_for_all_sensors(self):
+        self.mock_service._toggle_state()
+        publish_calls = (
+            self.sensors_service_mock.mqtt_service.publish_message.call_count
         )
-        self.test_class.interval = 0.1
-        self.test_class.logger = self.logger_mock
-        self.test_class._stop_event = self.stop_event_mock
+        # Un ciclo con 2 sensori = 2 messaggi
+        self.assertEqual(publish_calls, 2)
 
-    @patch('random.choice')
-    def test_toggle_state_low(self, random_choice_mock):
-        random_choice_mock.side_effect = lambda x: list(self.sensors_service_mock.sensors.items())[0]
+    def test_toggle_state_changes_value(self):
+        self.mock_service._toggle_state()
+        self.assertEqual(self.mock_service.mock_states[27], 0)  # 1 → 0
+        self.assertEqual(self.mock_service.mock_states[22], 0)
 
-        self.test_class._toggle_state()
+    def test_toggle_publishes_correct_status(self):
+        self.mock_service._toggle_state()
+        calls = self.sensors_service_mock.mqtt_service.publish_message.call_args_list
+        msg_porta = calls[0][0][0]
+        self.assertEqual(msg_porta.status, "closed")  # 0=closed
+        self.assertEqual(msg_porta.pin, 27)
+        self.assertEqual(msg_porta.name, "porta")
 
-        self.sensors_service_mock.sensors[17].pin.drive_low.assert_called_once()
-        self.sensors_service_mock.sensors[17].pin.drive_high.assert_not_called()
-        self.logger_mock.debug.assert_any_call("Sensor on pin %s set to LOW (pressed).",
-                                               self.sensors_service_mock.sensors[17].pin)
-
-    @patch('random.choice')
-    def test_toggle_state_high(self, random_choice_mock):
-        random_choice_mock.side_effect = lambda x: list(self.sensors_service_mock.sensors.items())[1]
-
-        self.test_class._toggle_state()
-
-        self.sensors_service_mock.sensors[18].pin.drive_high.assert_called_once()
-        self.sensors_service_mock.sensors[18].pin.drive_low.assert_not_called()
-        self.logger_mock.debug.assert_any_call("Sensor on pin %s set to HIGH (released).",
-                                               self.sensors_service_mock.sensors[18].pin)
-
-    @patch('threading.Thread')
+    @patch("threading.Thread")
     def test_start(self, mock_thread):
-        thread_instance_mock = MagicMock()
-        mock_thread.return_value = thread_instance_mock
-
-        self.test_class.start()
-
-        mock_thread.assert_called_once_with(target=self.test_class._toggle_state)
-        thread_instance_mock.start.assert_called_once()
-        self.assertEqual(self.test_class._thread, thread_instance_mock)
+        thread_instance = MagicMock()
+        mock_thread.return_value = thread_instance
+        self.mock_service.start()
+        mock_thread.assert_called_once_with(
+            target=self.mock_service._toggle_state, daemon=True
+        )
+        thread_instance.start.assert_called_once()
+        self.assertEqual(self.mock_service.thread, thread_instance)
 
     def test_stop(self):
-        thread_instance_mock = MagicMock()
-        self.test_class._thread = thread_instance_mock
+        thread_mock = MagicMock()
+        self.mock_service.thread = thread_mock
+        self.mock_service.stop_event = MagicMock()
+        self.mock_service.stop()
+        self.mock_service.stop_event.set.assert_called_once()
+        thread_mock.join.assert_called_once()
 
-        self.test_class.stop()
 
-        self.stop_event_mock.set.assert_called_once()
-        self.test_class._thread.join.assert_called_once()
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

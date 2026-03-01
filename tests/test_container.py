@@ -1,9 +1,7 @@
-import importlib
 import queue
 import injector
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
-
 import app.container
 from app.models import MqttConfig, SensorsConfig, RfidConfig
 from app.mqtt_client import MqttClient
@@ -12,20 +10,19 @@ from app.services import MqttService, SensorsService, MockSensorService
 
 class TestAppContainer(TestCase):
 
-    @patch("app.container._load_configs")
-    @patch("app.container.MqttClient")
-    @patch("app.container.MqttService")
-    @patch("app.container.SensorsService")
     @patch("app.container.MockSensorService")
+    @patch("app.container.SensorsService")
+    @patch("app.container.MqttService")
+    @patch("app.container.MqttClient")
+    @patch("app.container._load_configs")
     def test_container_bindings(
         self,
-        mock_mock_sensor_service,
-        mock_sensors_service,
-        mock_mqtt_service,
-        mock_mqtt_client,
         mock_load_configs,
+        mock_mqtt_client,
+        mock_mqtt_service,
+        mock_sensors_service,
+        mock_mock_sensor_service,
     ):
-        # prepare the values that _load_configs should return
         mqtt_cfg = MagicMock(spec=MqttConfig)
         sensors_cfg = MagicMock(spec=SensorsConfig)
         rfid_cfg = MagicMock(spec=RfidConfig)
@@ -33,17 +30,17 @@ class TestAppContainer(TestCase):
 
         inj = injector.Injector([app.container.AppModule()])
 
-        # queue is a singleton
+        # Queue singleton
         q1 = inj.get(queue.Queue)
         q2 = inj.get(queue.Queue)
         self.assertIs(q1, q2)
 
-        # configuration objects come from _load_configs
+        # Config da load_configs
         self.assertIs(inj.get(MqttConfig), mqtt_cfg)
         self.assertIs(inj.get(SensorsConfig), sensors_cfg)
         self.assertIs(inj.get(RfidConfig), rfid_cfg)
 
-        # ensure the provider methods built the rest of the graph
+        # Providers
         mqtt_client_obj = inj.get(MqttClient)
         mock_mqtt_client.assert_called_once_with(mqtt_cfg)
 
@@ -55,3 +52,8 @@ class TestAppContainer(TestCase):
 
         mock_sensor_obj = inj.get(MockSensorService)
         mock_mock_sensor_service.assert_called_once_with(sensors_service_obj)
+
+
+if __name__ == "__main__":
+    import unittest
+    unittest.main()

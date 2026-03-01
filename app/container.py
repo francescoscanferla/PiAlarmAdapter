@@ -37,13 +37,11 @@ def _load_configs():
 class AppModule(injector.Module):
     def __init__(self, mqtt_cfg=None, sensors_cfg=None, rfid_cfg=None):
         super().__init__()
-        # tests may inject their own instances
         self._mqtt_cfg = mqtt_cfg
         self._sensors_cfg = sensors_cfg
         self._rfid_cfg = rfid_cfg
 
     def configure(self, binder: injector.Binder) -> None:
-        # always have a queue singleton
         binder.bind(queue.Queue, to=queue.Queue, scope=injector.singleton)
 
         if any(x is None for x in (self._mqtt_cfg, self._sensors_cfg, self._rfid_cfg)):
@@ -55,9 +53,6 @@ class AppModule(injector.Module):
         binder.bind(MqttConfig, to=self._mqtt_cfg, scope=injector.singleton)
         binder.bind(SensorsConfig, to=self._sensors_cfg, scope=injector.singleton)
         binder.bind(RfidConfig, to=self._rfid_cfg, scope=injector.singleton)
-
-    # provider methods create the remaining objects and declare the
-    # dependencies they need; injector will resolve them automatically.
 
     @injector.singleton
     @injector.provider

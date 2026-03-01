@@ -37,8 +37,7 @@ class SensorsConfig(BaseModel):
 
     @classmethod
     def is_real_board(cls):
-        pin_factory = os.environ.get("GPIOZERO_PIN_FACTORY")
-        return pin_factory != "mock"
+        return os.environ.get("GPIO_MOCK", "false").lower() != "true"
 
 
 class RfidSensorConfig(BaseModel):

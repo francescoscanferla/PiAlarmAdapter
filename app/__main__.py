@@ -35,11 +35,11 @@ def main(
     try:
         while True:
             check_timer += 1
-            if check_timer == 10:
+            if check_timer == 5:
                 sensors_service.check_sensors()
                 check_timer = 0
 
-            time.sleep(1)
+            time.sleep(0.1)
     except KeyboardInterrupt:
         mqtt_service.disconnect()
         if not sensors_service.is_real_board():
