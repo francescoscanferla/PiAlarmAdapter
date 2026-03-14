@@ -45,7 +45,6 @@ class SensorsService:
         self.logger = logging.getLogger(__name__)
         self.config = sensors_config
         self.mqtt_service = mqtt_service
-        self.chip = None
         self.lines = {}
         self.last_values = {}
         self.last_change = defaultdict(float)
@@ -66,17 +65,19 @@ class SensorsService:
             self.logger.warning("gpiod not available. Force use mock.")
             return
         try:
-            self.chip = gpiod.Chip("gpiochip0")
-            for pin_str, name in self.config.sensors.items():
-                pin = int(pin_str)
-                line = self.chip.get_line(pin)
-                line.request(
+            for pin, name in self.config.sensors.items():
+                request = gpiod.request_lines(
+                    "/dev/gpiochip0",
                     consumer=name,
-                    type=gpiod.LINE_REQ_DIR_IN,
-                    flags=gpiod.LINE_REQ_FLAG_BIAS_PULL_UP,
+                    config={
+                        pin: gpiod.LineSettings(
+                            direction=gpiod.line.Direction.INPUT,
+                            bias=gpiod.line.Bias.PULL_UP,
+                        )
+                    },
                 )
-                self.lines[pin] = (line, name)
-                self.last_values[pin] = line.get_value()
+                self.lines[pin] = (request, name)
+                self.last_values[pin] = request.get_value(pin).value
                 self.logger.info(f"Sensor {name} on GPIO {pin} connected.")
         except Exception as e:
             self.logger.error(f"Error on GPIO: {e}. Try to use isrealboard=false.")
@@ -84,26 +85,25 @@ class SensorsService:
     def check_sensors(self):
         if not self.lines:
             return
-        for pin, (line, name) in self.lines.items():
-            value = line.get_value()
+        for pin, (request, name) in self.lines.items():
+            raw_value = request.get_value(pin)
+            value = raw_value.value if hasattr(raw_value, "value") else raw_value
             now = time.time()
             if (
                 value != self.last_values.get(pin, -1)
                 and now - self.last_change[pin] > self.DEBOUNCE_TIME
             ):
-                status = "closed" if value == 0 else "open"  # 0=chiuso (pull-up)
+                status = "closed" if value == 0 else "open"
                 self.mqtt_service.publish_message(
                     MessageModel(status=status, pin=pin, name=name, qos=2)
                 )
-                self.logger.info(f"{name} (GPIO{pin}): {status}")
+                self.logger.info(f"{name} GPIO{pin}: {status}")
                 self.last_values[pin] = value
                 self.last_change[pin] = now
 
     def close(self):
-        for line, _ in self.lines.values():
-            line.release()
-        if self.chip:
-            self.chip.close()
+        for request, _ in self.lines.values():
+            request.release()
 
 
 class RfidService:

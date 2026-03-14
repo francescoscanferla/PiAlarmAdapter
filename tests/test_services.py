@@ -21,6 +21,9 @@ class TestMqttService(TestCase):
             "alarm/test/status", "open", 0
         )
 
+    def test_get_topic(self):
+        self.assertEqual(self.mqtt_service._get_topic("test/status"), "alarm/test/status")
+
     def test_connect(self):
         self.mqtt_service.connect()
         self.mqtt_client_mock.connect.assert_called_once()
@@ -53,14 +56,12 @@ class TestSensorsService(TestCase):
 
     def test_connect_sensors_mock_mode_skips_gpio(self):
         self.sensors_service.connect_sensors()
-        self.assertIsNone(self.sensors_service.chip)
         self.assertEqual(self.sensors_service.lines, {})
 
     def test_connect_sensors_gpiod_unavailable(self):
         self.sensors_config_mock.is_real_board = True
         with patch("app.services.GPIOD_AVAILABLE", False):
             self.sensors_service.connect_sensors()
-        self.assertIsNone(self.sensors_service.chip)
         self.assertEqual(self.sensors_service.lines, {})
 
     def test_check_sensors_no_lines_does_nothing(self):
